@@ -1,5 +1,6 @@
 package com.skillcraft.backend.controller;
 
+import com.skillcraft.backend.dto.LoginRequest;
 import com.skillcraft.backend.dto.SignupRequest;
 import com.skillcraft.backend.service.AuthService;
 import jakarta.validation.Valid;
@@ -25,4 +26,10 @@ public class AuthController {
         // We will implement this logic in the service next
         return authService.registerCreator(signupRequest);
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> authenticateCreator(@Valid @RequestBody LoginRequest loginRequest) {
+        return authService.authenticateCreator(loginRequest);
+    }
+
 }

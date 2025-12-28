@@ -1,5 +1,7 @@
 package com.skillcraft.backend.service;
 
+import com.skillcraft.backend.dto.LoginRequest;
+import com.skillcraft.backend.dto.LoginResponse;
 import com.skillcraft.backend.dto.SignupRequest;
 import com.skillcraft.backend.model.Creator;
 import com.skillcraft.backend.repository.CreatorRepository;
@@ -19,6 +21,7 @@ import java.util.Optional;
 public class AuthService {
 
     private final CreatorRepository creatorRepository;
+    private final JwtService jwtService; // <-- Add this line
     // BCrypt is the industry standard for password hashing
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -56,4 +59,37 @@ public class AuthService {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+
+    public ResponseEntity<?> authenticateCreator(LoginRequest loginRequest) {
+        // 1. Find creator by email
+        Optional<Creator> creatorOptional = creatorRepository.findByEmail(loginRequest.getEmail());
+        if (creatorOptional.isEmpty()) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Invalid email or password.");
+            // Use UNAUTHORIZED (401) for failed authentication
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        Creator creator = creatorOptional.get();
+
+        // 2. Validate the provided password against the encrypted one
+        if (!passwordEncoder.matches(loginRequest.getPassword(), creator.getEncryptedPassword())) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Invalid email or password.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        // 3. Generate a JWT token for the authenticated creator
+        String jwtToken = jwtService.generateToken(creator.getEmail());
+
+        // 4. Return the token and user info in the response
+        LoginResponse response = new LoginResponse(
+                jwtToken,
+                "Login successful",
+                creator.getEmail()
+        );
+        return ResponseEntity.ok(response);
+    }
+
 }
